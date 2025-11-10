@@ -1,6 +1,7 @@
 import json
 from collections import Counter
 import re
+import matplotlib.pyplot as plt
 
 stop_words = set([
     'а', 'алло', 'без', 'близко', 'более', 'больше', 'будем', 'будет', 'будете', 'будешь',
@@ -34,11 +35,13 @@ def process_review(review_text):
     # Фильтруем стоп-слова
     filtered_words = [word for word in words if word not in stop_words]
     total_words = len(filtered_words)
-    # Находим 3 самых частых слова
-    top_words = [word for word, count in Counter(filtered_words).most_common(3)]
+    # Получаем 3 самых частых слова с их частотами
+    word_counts = Counter(filtered_words)
+    top_words = word_counts.most_common(3)
     return {
         "всего_слов": total_words,
-        "топ_слова": top_words
+        "топ_слова": [word for word, count in top_words],
+        "топ_частоты": [count for word, count in top_words]  # Добавляем частоты для визуализации
     }
 
 # Читаем файл с отзывами, где отзывы разделены пустыми строками
@@ -57,9 +60,42 @@ with open('reviews.txt', 'r', encoding='utf-8') as file:
 
 # Обрабатываем каждый отзыв
 output = {}
+processed_reviews = []
 for i, review in enumerate(reviews, start=1):
-    output[f"отзыв_{i}"] = process_review(review)
+    result = process_review(review)
+    output[f"отзыв_{i}"] = {
+        "всего_слов": result["всего_слов"],
+        "топ_слова": result["топ_слова"]
+    }
+    processed_reviews.append((f"отзыв_{i}", result))
 
 # Записываем результат в JSON файл
 with open('final.json', 'w', encoding='utf-8') as json_file:
     json.dump(output, json_file, ensure_ascii=False, indent=4)
+
+# Визуализация
+# 1. Барчарт для общего количества слов в каждом отзыве
+review_labels = [pr[0] for pr in processed_reviews]
+total_words = [pr[1]["всего_слов"] for pr in processed_reviews]
+
+plt.figure(figsize=(10, 5))
+plt.bar(review_labels, total_words, color='skyblue')
+plt.title('Количество слов в каждом отзыве')
+plt.xlabel('Отзывы')
+plt.ylabel('Количество слов')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig('total_words.png')  # Сохраняем график как изображение
+plt.show()
+
+# 2. Для каждого отзыва: барчарт топ-3 слов с частотами
+for label, result in processed_reviews:
+    if result["топ_слова"]:
+        plt.figure(figsize=(8, 4))
+        plt.bar(result["топ_слова"], result["топ_частоты"], color='lightgreen')
+        plt.title(f'Топ-3 слова в {label}')
+        plt.xlabel('Слова')
+        plt.ylabel('Частота')
+        plt.tight_layout()
+        plt.savefig(f'{label}_top_words.png')  # Сохраняем каждый график
+        plt.show()
