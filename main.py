@@ -2,6 +2,8 @@ import json
 from collections import Counter
 import re
 import matplotlib.pyplot as plt
+import os
+import atexit
 
 stop_words = set([
     'а', 'алло', 'без', 'близко', 'более', 'больше', 'будем', 'будет', 'будете', 'будешь',
@@ -61,6 +63,7 @@ with open('reviews.txt', 'r', encoding='utf-8') as file:
 # Обрабатываем каждый отзыв
 output = {}
 processed_reviews = []
+plot_files = []  # Список файлов для удаления
 for i, review in enumerate(reviews, start=1):
     result = process_review(review)
     output[f"отзыв_{i}"] = {
@@ -85,7 +88,9 @@ plt.xlabel('Отзывы')
 plt.ylabel('Количество слов')
 plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig('total_words.png')  # Сохраняем график как изображение
+total_words_file = 'total_words.png'
+plt.savefig(total_words_file)  # Сохраняем график как изображение
+plot_files.append(total_words_file)
 plt.show()
 
 # 2. Для каждого отзыва: барчарт топ-3 слов с частотами
@@ -97,5 +102,17 @@ for label, result in processed_reviews:
         plt.xlabel('Слова')
         plt.ylabel('Частота')
         plt.tight_layout()
-        plt.savefig(f'{label}_top_words.png')  # Сохраняем каждый график
+        top_words_file = f'{label}_top_words.png'
+        plt.savefig(top_words_file)  # Сохраняем каждый график
+        plot_files.append(top_words_file)
         plt.show()
+
+# Функция для очистки файлов
+def cleanup_plots():
+    for file in plot_files:
+        if os.path.exists(file):
+            os.remove(file)
+            print(f"Удалён файл: {file}")
+
+# Регистрируем функцию очистки при завершении программы
+atexit.register(cleanup_plots)
